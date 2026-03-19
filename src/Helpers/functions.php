@@ -180,8 +180,8 @@ function requireAdmin(): void
     }
 }
 
-/** 取得使用者上傳圖片的公開路徑 */
-function uploadUrl(string $filename, int $listingId): string
+/** 取得使用者上傳圖片的公開路徑（平放，不用子目錄） */
+function uploadUrl(string $filename, int $listingId = 0): string
 {
-    return '/uploads/listings/' . $listingId . '/' . $filename;
+    return '/uploads/listings/' . $filename;
 }

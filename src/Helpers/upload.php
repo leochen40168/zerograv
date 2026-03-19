@@ -17,6 +17,7 @@ class ImageUploader
 
     public function __construct()
     {
+        // 平放結構：所有圖片放在 uploads/listings/ 不建子目錄
         $this->baseDir = self::webRoot() . '/uploads/listings';
     }
 
@@ -100,14 +101,14 @@ class ImageUploader
             return ['success' => false, 'error' => '副檔名不合法'];
         }
 
-        // 建立目錄
-        $dir = $this->baseDir . '/' . $listingId;
+        // 平放：直接存到 uploads/listings/，不建子目錄
+        $dir = $this->baseDir;
         if (!is_dir($dir)) {
             mkdir($dir, 0755, true);
         }
 
-        // 產生唯一檔名
-        $filename = sprintf('%d_%s.%s', $idx, bin2hex(random_bytes(8)), $ext);
+        // 產生唯一檔名（加入 listing_id 避免碰撞）
+        $filename = sprintf('%d_%d_%s.%s', $listingId, $idx, bin2hex(random_bytes(8)), $ext);
         $destPath = $dir . '/' . $filename;
 
         // 移動並壓縮
@@ -192,19 +193,18 @@ class ImageUploader
         return $result;
     }
 
-    /** 刪除刊登的所有圖片目錄 */
+    /** 刪除刊登的指定圖片（平放結構） */
     public function deleteListingImages(int $listingId): void
     {
-        $dir = $this->baseDir . '/' . $listingId;
-        if (is_dir($dir)) {
-            array_map('unlink', glob($dir . '/*') ?: []);
-            rmdir($dir);
+        // 平放結構無子目錄，改為刪除以 listingId_ 開頭的檔案
+        foreach (glob($this->baseDir . '/' . $listingId . '_*') ?: [] as $file) {
+            unlink($file);
         }
     }
 
     /** 取得圖片的實體磁碟路徑 */
     public static function imagePath(int $listingId, string $filename): string
     {
-        return self::webRoot() . '/uploads/listings/' . $listingId . '/' . $filename;
+        return self::webRoot() . '/uploads/listings/' . $filename;
     }
 }

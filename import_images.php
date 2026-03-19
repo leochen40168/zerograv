@@ -154,7 +154,7 @@ if ($step === 1):
         <?php endif; ?>
       </td>
       <td>
-        <code>public_html/uploads/listings/<?= $item['id'] ?>/<?= htmlspecialchars($filename) ?></code>
+        <code>public_html/uploads/listings/<?= htmlspecialchars($filename) ?></code>
       </td>
     </tr>
     <?php endforeach; ?>
@@ -166,8 +166,8 @@ if ($step === 1):
 <ol>
   <li>用 FTP 連線到伺服器</li>
   <li>進入 <code>public_html/uploads/listings/</code></li>
-  <li>依對照表建立子目錄（資料夾名稱為刊登 ID 數字）</li>
-  <li>將 <code>pic/renamed/</code> 裡對應的圖片上傳到各自目錄</li>
+  <li>不需建立子目錄，直接把圖片放在這層</li>
+  <li>將 <code>pic/renamed/</code> 裡的 15 張圖片全部上傳到此目錄</li>
   <li>全部上傳完畢後，點下方「步驟 2」寫入資料庫</li>
 </ol>
 
@@ -200,7 +200,7 @@ foreach ($resolved as $item) {
     $lid = $item['id'];
 
     foreach ($item['images'] as $sortOrder => $filename) {
-        $filePath = $webRoot . '/uploads/listings/' . $lid . '/' . $filename;
+        $filePath = $webRoot . '/uploads/listings/' . $filename;
 
         if (!file_exists($filePath)) {
             $skipped[] = "#$lid / $filename（檔案不存在，跳過）";
