@@ -70,10 +70,10 @@ include dirname(__DIR__, 2) . '/templates/layout/header.php';
   <!-- ── 主內容 ──────────────────────────────────────────── -->
   <div class="flex-1 min-w-0">
 
-    <!-- 圖片輪播：PHP 直接輸出所有圖片到 DOM，Alpine 只控制哪張顯示 -->
+    <!-- 圖片輪播（純 JS，不依賴 Alpine） -->
     <?php if (!empty($images)): ?>
-    <div class="bg-white rounded-2xl shadow-sm overflow-hidden mb-5"
-         x-data="{ current: 0, total: <?= count($images) ?> }">
+    <?php $totalImages = count($images); ?>
+    <div class="bg-white rounded-2xl shadow-sm overflow-hidden mb-5">
 
       <!-- 主圖區 -->
       <div class="relative bg-gray-100 overflow-hidden" style="aspect-ratio:16/10;">
@@ -81,44 +81,83 @@ include dirname(__DIR__, 2) . '/templates/layout/header.php';
         <?php foreach ($images as $i => $img): ?>
         <img src="<?= e(uploadUrl($img['filename'], $id)) ?>"
              alt="<?= e($listing['title']) ?> 圖片 <?= $i + 1 ?>"
+             id="slide-<?= $id ?>-<?= $i ?>"
              class="absolute inset-0 w-full h-full object-contain transition-opacity duration-300"
-             :class="current === <?= $i ?> ? 'opacity-100 z-10' : 'opacity-0 z-0'"
-             style="<?= $i === 0 ? 'opacity:1;z-index:10;' : 'opacity:0;z-index:0;' ?>">
+             style="opacity:<?= $i === 0 ? '1' : '0' ?>; z-index:<?= $i === 0 ? '10' : '0' ?>;">
         <?php endforeach; ?>
 
-        <?php if (count($images) > 1): ?>
-        <!-- 左箭頭 -->
-        <button @click="current = (current - 1 + total) % total"
-                class="absolute left-3 top-1/2 -translate-y-1/2 z-20 bg-black/40 hover:bg-black/60 text-white w-10 h-10 rounded-full flex items-center justify-center text-xl transition">
+        <?php if ($totalImages > 1): ?>
+        <button onclick="zgSlide(<?= $id ?>, -1)"
+                class="absolute left-3 top-1/2 -translate-y-1/2 z-20 bg-black/40 hover:bg-black/60 text-white w-10 h-10 rounded-full flex items-center justify-center text-2xl leading-none transition select-none">
           &#8249;
         </button>
-        <!-- 右箭頭 -->
-        <button @click="current = (current + 1) % total"
-                class="absolute right-3 top-1/2 -translate-y-1/2 z-20 bg-black/40 hover:bg-black/60 text-white w-10 h-10 rounded-full flex items-center justify-center text-xl transition">
+        <button onclick="zgSlide(<?= $id ?>, 1)"
+                class="absolute right-3 top-1/2 -translate-y-1/2 z-20 bg-black/40 hover:bg-black/60 text-white w-10 h-10 rounded-full flex items-center justify-center text-2xl leading-none transition select-none">
           &#8250;
         </button>
-        <!-- 計數器 -->
         <div class="absolute bottom-3 right-3 z-20 bg-black/50 text-white text-xs px-2 py-1 rounded-full">
-          <span x-text="current + 1"></span> / <?= count($images) ?>
+          <span id="slide-counter-<?= $id ?>">1</span> / <?= $totalImages ?>
         </div>
         <?php endif; ?>
       </div>
 
       <!-- 縮圖列 -->
-      <?php if (count($images) > 1): ?>
+      <?php if ($totalImages > 1): ?>
       <div class="flex gap-2 p-3 overflow-x-auto">
         <?php foreach ($images as $i => $img): ?>
-        <button @click="current = <?= $i ?>"
-                :class="current === <?= $i ?> ? 'ring-2 ring-primary' : 'opacity-60 hover:opacity-100'"
-                class="shrink-0 w-16 h-12 rounded-lg overflow-hidden transition border-2 border-transparent">
+        <button onclick="zgGoto(<?= $id ?>, <?= $i ?>)"
+                id="thumb-<?= $id ?>-<?= $i ?>"
+                class="shrink-0 w-16 h-12 rounded-lg overflow-hidden transition border-2
+                       <?= $i === 0 ? 'border-primary opacity-100' : 'border-transparent opacity-50' ?>">
           <img src="<?= e(uploadUrl($img['filename'], $id)) ?>"
-               class="w-full h-full object-cover"
-               alt="縮圖 <?= $i + 1 ?>">
+               class="w-full h-full object-cover" alt="縮圖 <?= $i + 1 ?>">
         </button>
         <?php endforeach; ?>
       </div>
       <?php endif; ?>
     </div>
+
+    <script>
+    (function () {
+      var state = {};
+
+      window.zgGoto = function (id, n) {
+        if (!state[id]) state[id] = { current: 0, total: <?= $totalImages ?> };
+        var s = state[id];
+        var prev = s.current;
+        s.current = ((n % s.total) + s.total) % s.total;
+
+        // 大圖切換
+        var prevEl = document.getElementById('slide-' + id + '-' + prev);
+        var nextEl = document.getElementById('slide-' + id + '-' + s.current);
+        if (prevEl) { prevEl.style.opacity = '0'; prevEl.style.zIndex = '0'; }
+        if (nextEl) { nextEl.style.opacity = '1'; nextEl.style.zIndex = '10'; }
+
+        // 計數器
+        var counter = document.getElementById('slide-counter-' + id);
+        if (counter) counter.textContent = s.current + 1;
+
+        // 縮圖 highlight
+        for (var i = 0; i < s.total; i++) {
+          var t = document.getElementById('thumb-' + id + '-' + i);
+          if (!t) continue;
+          if (i === s.current) {
+            t.style.borderColor = '#0f4c81';
+            t.style.opacity = '1';
+          } else {
+            t.style.borderColor = 'transparent';
+            t.style.opacity = '0.5';
+          }
+        }
+      };
+
+      window.zgSlide = function (id, dir) {
+        if (!state[id]) state[id] = { current: 0, total: <?= $totalImages ?> };
+        zgGoto(id, state[id].current + dir);
+      };
+    })();
+    </script>
+
     <?php else: ?>
     <div class="bg-gray-100 rounded-2xl flex items-center justify-center text-8xl text-gray-300 mb-5" style="aspect-ratio:16/10;">🔬</div>
     <?php endif; ?>
