@@ -41,8 +41,13 @@ class Listing
         $bind   = [];
 
         if (!empty($params['q'])) {
-            $where[] = "MATCH(l.title, l.brand, l.model, l.description) AGAINST(? IN BOOLEAN MODE)";
-            $bind[]  = '+' . implode(' +', array_filter(explode(' ', trim($params['q']))));
+            // 使用 LIKE 搜尋（MariaDB 虛擬主機不支援 ngram 全文解析）
+            $kw      = '%' . $params['q'] . '%';
+            $where[] = "(l.title LIKE ? OR l.brand LIKE ? OR l.model LIKE ? OR l.description LIKE ?)";
+            $bind[]  = $kw;
+            $bind[]  = $kw;
+            $bind[]  = $kw;
+            $bind[]  = $kw;
         }
 
         if (!empty($params['category'])) {
@@ -89,9 +94,9 @@ class Listing
         // 排序
         $orderMap = [
             'newest'    => 'l.is_featured DESC, l.created_at DESC',
-            'price_asc' => 'l.price ASC',
-            'price_desc'=> 'l.price DESC',
-            'views'     => 'l.views DESC',
+            'price_asc' => 'l.is_featured DESC, l.price ASC',
+            'price_desc'=> 'l.is_featured DESC, l.price DESC',
+            'views'     => 'l.is_featured DESC, l.views DESC',
         ];
         $order = $orderMap[$params['sort'] ?? 'newest'] ?? $orderMap['newest'];
 

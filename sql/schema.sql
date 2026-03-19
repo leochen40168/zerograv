@@ -86,8 +86,7 @@ CREATE TABLE IF NOT EXISTS `listings` (
   INDEX `idx_status`     (`status`),
   INDEX `idx_featured`   (`is_featured`),
   INDEX `idx_created`    (`created_at` DESC),
-  FULLTEXT INDEX `ft_search` (`title`, `brand`, `model`, `description`)
-    WITH PARSER ngram,
+  FULLTEXT INDEX `ft_search` (`title`, `brand`, `model`, `description`),
   CONSTRAINT `fk_listing_user`
     FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE,
   CONSTRAINT `fk_listing_category`
