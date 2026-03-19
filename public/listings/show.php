@@ -80,14 +80,10 @@ include dirname(__DIR__, 2) . '/templates/layout/header.php';
            next() { this.current = (this.current + 1) % this.images.length }
          }">
       <!-- 主圖 -->
-      <div class="relative aspect-[16/10] bg-gray-100">
-        <template x-for="(src, i) in images" :key="i">
-          <img :src="src" x-show="current === i"
-               class="absolute inset-0 w-full h-full object-contain"
-               x-transition:enter="transition duration-300"
-               x-transition:enter-start="opacity-0"
-               x-transition:enter-end="opacity-100">
-        </template>
+      <div class="relative aspect-[16/10] bg-gray-100 overflow-hidden">
+        <!-- 直接顯示目前圖片，避免 x-for+x-show 初始化問題 -->
+        <img :src="images[current]"
+             class="absolute inset-0 w-full h-full object-contain transition-opacity duration-300">
 
         <!-- 箭頭（多圖才顯示） -->
         <?php if (count($images) > 1): ?>
