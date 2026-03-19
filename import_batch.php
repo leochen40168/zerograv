@@ -7,6 +7,8 @@
 
 declare(strict_types=1);
 date_default_timezone_set('Asia/Taipei');
+ini_set('display_errors', '1');
+error_reporting(E_ALL);
 
 // ── 安全保護 ─────────────────────────────────────────────────
 if (($_GET['token'] ?? '') !== 'zg_import_2026') {
@@ -14,7 +16,8 @@ if (($_GET['token'] ?? '') !== 'zg_import_2026') {
     die('403 Forbidden');
 }
 
-require_once __DIR__ . '/config/database.php';
+// config/ 在 public_html 的上一層
+require_once dirname(__DIR__) . '/config/database.php';
 
 // ── 分類 ID（對應 categories 資料表）────────────────────────
 // 2 = 測試測量, 3 = 光學儀器
