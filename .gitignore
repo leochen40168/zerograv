@@ -1,0 +1,28 @@
+# 環境設定（含資料庫密碼，絕對不入 git）
+.env
+
+# 使用者上傳的圖片
+public/uploads/listings/
+uploads/
+
+# 廣告圖片（大型二進位檔）
+public/uploads/banners/
+
+# 編輯器 / IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# PHP 快取
+*.cache
+
+# Log 檔
+*.log
+logs/
+
+# 暫存
+tmp/
+temp/
