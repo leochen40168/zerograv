@@ -213,10 +213,10 @@ INSERT INTO `categories` (`parent_id`, `name`, `slug`, `sort_order`) VALUES
 (4, '真空設備',       'vacuum',           5);
 
 -- 預設管理員帳號（密碼：Admin@2026，請上線前立即更改）
--- password_hash('Admin@2026', PASSWORD_BCRYPT)
+-- password_hash('Admin@2026', PASSWORD_BCRYPT, ['cost'=>12])
 INSERT INTO `users` (`name`, `email`, `password`, `role`) VALUES
 ('系統管理員', 'admin@zerograv.com.tw',
- '$2y$12$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi',
+ '$2b$12$B067H5lImepkU.OqAUe5Y.ZIRKZF5jw2hlt1MprGAvN7JFThkgqB.',
  'admin');
 
 SET foreign_key_checks = 1;
