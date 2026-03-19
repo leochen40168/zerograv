@@ -1,0 +1,8 @@
+# 後台目錄額外保護
+Options -Indexes
+
+# 只允許 PHP 請求（可搭配 IP 白名單）
+<FilesMatch "\.php$">
+  Order allow,deny
+  Allow from all
+</FilesMatch>
