@@ -70,33 +70,35 @@ include dirname(__DIR__, 2) . '/templates/layout/header.php';
   <!-- ── 主內容 ──────────────────────────────────────────── -->
   <div class="flex-1 min-w-0">
 
-    <!-- 圖片輪播 (Alpine.js) -->
+    <!-- 圖片輪播：PHP 直接輸出所有圖片到 DOM，Alpine 只控制哪張顯示 -->
     <?php if (!empty($images)): ?>
     <div class="bg-white rounded-2xl shadow-sm overflow-hidden mb-5"
-         x-data="{
-           current: 0,
-           images: <?= json_encode(array_map(fn($img) => uploadUrl($img['filename'], $id), $images)) ?>,
-           prev() { this.current = (this.current - 1 + this.images.length) % this.images.length },
-           next() { this.current = (this.current + 1) % this.images.length }
-         }">
-      <!-- 主圖 -->
-      <div class="relative aspect-[16/10] bg-gray-100 overflow-hidden">
-        <!-- 直接顯示目前圖片，避免 x-for+x-show 初始化問題 -->
-        <img :src="images[current]"
-             class="absolute inset-0 w-full h-full object-contain transition-opacity duration-300">
+         x-data="{ current: 0, total: <?= count($images) ?> }">
 
-        <!-- 箭頭（多圖才顯示） -->
+      <!-- 主圖區 -->
+      <div class="relative bg-gray-100 overflow-hidden" style="aspect-ratio:16/10;">
+
+        <?php foreach ($images as $i => $img): ?>
+        <img src="<?= e(uploadUrl($img['filename'], $id)) ?>"
+             alt="<?= e($listing['title']) ?> 圖片 <?= $i + 1 ?>"
+             class="absolute inset-0 w-full h-full object-contain transition-opacity duration-300"
+             :class="current === <?= $i ?> ? 'opacity-100 z-10' : 'opacity-0 z-0'"
+             style="<?= $i === 0 ? 'opacity:1;z-index:10;' : 'opacity:0;z-index:0;' ?>">
+        <?php endforeach; ?>
+
         <?php if (count($images) > 1): ?>
-        <button @click="prev()"
-                class="absolute left-3 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/60 text-white w-9 h-9 rounded-full flex items-center justify-center transition">
-          ‹
+        <!-- 左箭頭 -->
+        <button @click="current = (current - 1 + total) % total"
+                class="absolute left-3 top-1/2 -translate-y-1/2 z-20 bg-black/40 hover:bg-black/60 text-white w-10 h-10 rounded-full flex items-center justify-center text-xl transition">
+          &#8249;
         </button>
-        <button @click="next()"
-                class="absolute right-3 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/60 text-white w-9 h-9 rounded-full flex items-center justify-center transition">
-          ›
+        <!-- 右箭頭 -->
+        <button @click="current = (current + 1) % total"
+                class="absolute right-3 top-1/2 -translate-y-1/2 z-20 bg-black/40 hover:bg-black/60 text-white w-10 h-10 rounded-full flex items-center justify-center text-xl transition">
+          &#8250;
         </button>
         <!-- 計數器 -->
-        <div class="absolute bottom-3 right-3 bg-black/50 text-white text-xs px-2 py-1 rounded-full">
+        <div class="absolute bottom-3 right-3 z-20 bg-black/50 text-white text-xs px-2 py-1 rounded-full">
           <span x-text="current + 1"></span> / <?= count($images) ?>
         </div>
         <?php endif; ?>
@@ -108,15 +110,17 @@ include dirname(__DIR__, 2) . '/templates/layout/header.php';
         <?php foreach ($images as $i => $img): ?>
         <button @click="current = <?= $i ?>"
                 :class="current === <?= $i ?> ? 'ring-2 ring-primary' : 'opacity-60 hover:opacity-100'"
-                class="shrink-0 w-16 h-12 rounded-lg overflow-hidden transition">
-          <img src="<?= e(uploadUrl($img['filename'], $id)) ?>" class="w-full h-full object-cover">
+                class="shrink-0 w-16 h-12 rounded-lg overflow-hidden transition border-2 border-transparent">
+          <img src="<?= e(uploadUrl($img['filename'], $id)) ?>"
+               class="w-full h-full object-cover"
+               alt="縮圖 <?= $i + 1 ?>">
         </button>
         <?php endforeach; ?>
       </div>
       <?php endif; ?>
     </div>
     <?php else: ?>
-    <div class="bg-gray-100 rounded-2xl aspect-[16/10] flex items-center justify-center text-8xl text-gray-300 mb-5">🔬</div>
+    <div class="bg-gray-100 rounded-2xl flex items-center justify-center text-8xl text-gray-300 mb-5" style="aspect-ratio:16/10;">🔬</div>
     <?php endif; ?>
 
     <!-- 標題 + 狀態 -->
