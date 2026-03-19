@@ -1,30 +1,15 @@
-# ZeroGrav - Apache URL 設定
-
+# ZeroGrav - Apache 設定
 Options -Indexes
-ServerSignature Off
 
-# ── 安全 Headers ─────────────────────────────────────────────
 <IfModule mod_headers.c>
   Header set X-Content-Type-Options "nosniff"
   Header set X-Frame-Options "SAMEORIGIN"
-  Header set X-XSS-Protection "1; mode=block"
-  Header set Referrer-Policy "strict-origin-when-cross-origin"
 </IfModule>
 
-# ── 上傳目錄禁止執行 PHP ─────────────────────────────────────
-<Directory "uploads">
-  <FilesMatch "\.php$">
-    Order allow,deny
-    Deny from all
-  </FilesMatch>
-</Directory>
-
-# ── GZIP 壓縮 ────────────────────────────────────────────────
 <IfModule mod_deflate.c>
   AddOutputFilterByType DEFLATE text/html text/css text/javascript application/javascript
 </IfModule>
 
-# ── 靜態資源快取 ─────────────────────────────────────────────
 <IfModule mod_expires.c>
   ExpiresActive On
   ExpiresByType image/jpeg "access plus 1 month"
