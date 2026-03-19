@@ -63,7 +63,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } else {
                 $ext      = strtolower(pathinfo($_FILES['image']['name'], PATHINFO_EXTENSION));
                 $filename = 'banner_' . time() . '_' . bin2hex(random_bytes(4)) . '.' . $ext;
-                $dir      = dirname(__DIR__, 2) . '/public/uploads/banners';
+                // 自動偵測 webroot（相容 public_html / public）
+                $base = dirname(__DIR__, 2);
+                $webRoot = '';
+                foreach (['public_html','public','www','htdocs'] as $d) {
+                    if (is_dir($base . '/' . $d)) { $webRoot = $base . '/' . $d; break; }
+                }
+                $dir = ($webRoot ?: $base) . '/uploads/banners';
                 if (!is_dir($dir)) mkdir($dir, 0755, true);
                 move_uploaded_file($_FILES['image']['tmp_name'], $dir . '/' . $filename);
                 $imagePath = '/uploads/banners/' . $filename;
@@ -90,7 +96,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $old->execute([$editId]);
                     $oldRow = $old->fetch();
                     if ($oldRow) {
-                        $oldPath = dirname(__DIR__, 2) . '/public' . $oldRow['image_path'];
+                        $base2 = dirname(__DIR__, 2);
+                        $wr = '';
+                        foreach (['public_html','public','www','htdocs'] as $d) {
+                            if (is_dir($base2 . '/' . $d)) { $wr = $base2 . '/' . $d; break; }
+                        }
+                        $oldPath = ($wr ?: $base2) . $oldRow['image_path'];
                         if (file_exists($oldPath)) unlink($oldPath);
                     }
                 }
@@ -133,16 +144,16 @@ include dirname(__DIR__, 2) . '/templates/layout/header.php';
   </div>
   <?php endif; ?>
 
-  <!-- 新增廣告表單 -->
-  <div class="bg-white rounded-2xl shadow-sm p-6 mb-6" x-data="{ open: false }">
-    <button @click="open = !open"
-            class="flex items-center gap-2 font-bold text-gray-700 w-full text-left">
+  <!-- 新增廣告表單（有錯誤時自動展開） -->
+  <details class="bg-white rounded-2xl shadow-sm p-6 mb-6" id="add-banner-form"
+           <?= !empty($errors) ? 'open' : '' ?>>
+    <summary class="flex items-center gap-2 font-bold text-gray-700 cursor-pointer select-none list-none">
       <span>+ 新增廣告</span>
-      <svg class="w-5 h-5 ml-auto transition-transform" :class="open ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <svg class="w-5 h-5 ml-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
       </svg>
-    </button>
-    <div x-show="open" x-cloak class="mt-4 border-t pt-4">
+    </summary>
+    <div class="mt-4 border-t pt-4">
       <form method="POST" enctype="multipart/form-data" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <?= csrfField() ?>
         <input type="hidden" name="action" value="create">
@@ -193,7 +204,7 @@ include dirname(__DIR__, 2) . '/templates/layout/header.php';
         </div>
       </form>
     </div>
-  </div>
+  </details>
 
   <!-- 廣告列表 -->
   <div class="space-y-4">
