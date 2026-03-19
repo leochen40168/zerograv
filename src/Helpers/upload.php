@@ -17,7 +17,21 @@ class ImageUploader
 
     public function __construct()
     {
-        $this->baseDir = dirname(__DIR__, 2) . '/public/uploads/listings';
+        $this->baseDir = self::webRoot() . '/uploads/listings';
+    }
+
+    /**
+     * 自動偵測網站根目錄（相容 public_html / public / www / htdocs）
+     */
+    public static function webRoot(): string
+    {
+        $base = dirname(__DIR__, 2);
+        foreach (['public_html', 'public', 'www', 'htdocs'] as $dir) {
+            if (is_dir($base . '/' . $dir)) {
+                return $base . '/' . $dir;
+            }
+        }
+        return $base . '/public_html';
     }
 
     /**
@@ -186,5 +200,11 @@ class ImageUploader
             array_map('unlink', glob($dir . '/*') ?: []);
             rmdir($dir);
         }
+    }
+
+    /** 取得圖片的實體磁碟路徑 */
+    public static function imagePath(int $listingId, string $filename): string
+    {
+        return self::webRoot() . '/uploads/listings/' . $listingId . '/' . $filename;
     }
 }

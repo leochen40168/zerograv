@@ -41,7 +41,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         foreach ($_POST['delete_images'] as $imgId) {
             $filename = $model->deleteImage((int)$imgId, $id);
             if ($filename) {
-                $filePath = dirname(__DIR__, 2) . '/public/uploads/listings/' . $id . '/' . $filename;
+                $filePath = ImageUploader::imagePath($id, $filename);
                 if (file_exists($filePath)) unlink($filePath);
             }
         }

@@ -1,0 +1,6 @@
+# 上傳目錄：禁止直接執行 PHP，允許顯示圖片
+<FilesMatch "\.php$">
+  Order allow,deny
+  Deny from all
+</FilesMatch>
+Options -Indexes
