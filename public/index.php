@@ -15,13 +15,13 @@ session_start();
 
 $db = getPDO();
 
-// ── 頂部 Banner ──────────────────────────────────────────────
-$topBanners = $db->query(
+// ── 輪播廣告（banners 資料表 position='top'）────────────────
+$carouselBanners = $db->query(
     "SELECT * FROM banners
      WHERE position = 'top' AND is_active = 1
        AND (starts_at IS NULL OR starts_at <= CURDATE())
        AND (ends_at   IS NULL OR ends_at   >= CURDATE())
-     ORDER BY sort_order LIMIT 3"
+     ORDER BY sort_order"
 )->fetchAll();
 
 // ── 最新刊登（12 筆）────────────────────────────────────────
@@ -66,6 +66,101 @@ include dirname(__DIR__) . '/templates/layout/header.php';
     </div>
   </div>
 </section>
+
+<!-- ── 廣告 Banner 輪播 ──────────────────────────────────── -->
+<?php if (!empty($carouselBanners)): ?>
+<?php $total = count($carouselBanners); ?>
+<section class="mb-8 rounded-2xl overflow-hidden shadow-sm"
+         id="hero-carousel"
+         x-data="{
+           cur: 0,
+           total: <?= $total ?>,
+           timer: null,
+           start() {
+             this.timer = setInterval(() => { this.next(); }, 5000);
+           },
+           stop() {
+             clearInterval(this.timer);
+           },
+           next() {
+             this.cur = (this.cur + 1) % this.total;
+             this.syncStyles();
+           },
+           prev() {
+             this.cur = (this.cur - 1 + this.total) % this.total;
+             this.syncStyles();
+           },
+           goto(n) {
+             this.cur = n;
+             this.syncStyles();
+           },
+           syncStyles() {
+             const slides = document.querySelectorAll('#hero-carousel .banner-slide');
+             const dots   = document.querySelectorAll('#hero-carousel .banner-dot');
+             slides.forEach((el, i) => {
+               el.style.opacity  = i === this.cur ? '1' : '0';
+               el.style.zIndex   = i === this.cur ? '10' : '0';
+             });
+             dots.forEach((el, i) => {
+               el.style.opacity = i === this.cur ? '1' : '0.4';
+               el.style.transform = i === this.cur ? 'scale(1.3)' : 'scale(1)';
+             });
+           }
+         }"
+         x-init="start(); syncStyles();"
+         @mouseenter="stop()"
+         @mouseleave="start()">
+
+  <!-- 圖片層 -->
+  <div class="relative w-full" style="aspect-ratio:4/1; min-height:120px;">
+
+    <?php foreach ($carouselBanners as $i => $banner): ?>
+    <a href="<?= e($banner['link_url'] ?? '#') ?>"
+       target="<?= $banner['link_url'] ? '_blank' : '_self' ?>"
+       rel="noopener"
+       onclick="<?= $banner['link_url'] ? "fetch('/api/banner-click.php?id={$banner['id']}',{method:'POST'})" : '' ?>"
+       class="banner-slide absolute inset-0 block transition-opacity duration-700"
+       style="opacity:<?= $i === 0 ? '1' : '0' ?>; z-index:<?= $i === 0 ? '10' : '0' ?>;">
+      <img src="<?= e($banner['image_path']) ?>"
+           alt="<?= e($banner['title']) ?>"
+           class="w-full h-full object-cover">
+    </a>
+    <?php endforeach; ?>
+
+    <?php if ($total > 1): ?>
+    <!-- 左箭頭 -->
+    <button @click.prevent="prev()"
+            class="absolute left-3 top-1/2 -translate-y-1/2 z-20
+                   bg-black/30 hover:bg-black/50 text-white
+                   w-9 h-9 rounded-full flex items-center justify-center
+                   text-xl leading-none transition select-none">
+      &#8249;
+    </button>
+    <!-- 右箭頭 -->
+    <button @click.prevent="next()"
+            class="absolute right-3 top-1/2 -translate-y-1/2 z-20
+                   bg-black/30 hover:bg-black/50 text-white
+                   w-9 h-9 rounded-full flex items-center justify-center
+                   text-xl leading-none transition select-none">
+      &#8250;
+    </button>
+    <?php endif; ?>
+  </div>
+
+  <?php if ($total > 1): ?>
+  <!-- 圓點指示器 -->
+  <div class="flex justify-center items-center gap-2 py-2 bg-white">
+    <?php foreach ($carouselBanners as $i => $banner): ?>
+    <button @click="goto(<?= $i ?>)"
+            class="banner-dot w-2.5 h-2.5 rounded-full bg-primary transition-all duration-300"
+            style="opacity:<?= $i === 0 ? '1' : '0.4' ?>; transform:<?= $i === 0 ? 'scale(1.3)' : 'scale(1)' ?>;">
+    </button>
+    <?php endforeach; ?>
+  </div>
+  <?php endif; ?>
+
+</section>
+<?php endif; ?>
 
 <!-- 分類快捷 -->
 <section class="mb-10">

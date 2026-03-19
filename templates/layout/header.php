@@ -30,20 +30,7 @@
 </head>
 <body class="bg-gray-50 text-gray-800 font-sans">
 
-<!-- ── 頂部 Banner 廣告 ──────────────────────────────────── -->
-<?php if (!empty($topBanners)): ?>
-<div class="bg-white border-b">
-  <div class="max-w-7xl mx-auto px-4 py-2">
-    <?php foreach ($topBanners as $banner): ?>
-    <a href="<?= e($banner['link_url']) ?>" target="_blank" rel="noopener"
-       onclick="trackBannerClick(<?= (int)$banner['id'] ?>)">
-      <img src="<?= e($banner['image_path']) ?>" alt="<?= e($banner['title']) ?>"
-           class="w-full max-h-[120px] object-contain mx-auto">
-    </a>
-    <?php endforeach; ?>
-  </div>
-</div>
-<?php endif; ?>
+<!-- 頂部靜態 Banner 已移至首頁輪播（index.php） -->
 
 <!-- ── 導覽列 ────────────────────────────────────────────── -->
 <nav class="bg-primary text-white shadow-md" x-data="{ open: false }">
