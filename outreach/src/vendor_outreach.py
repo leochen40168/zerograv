@@ -14,9 +14,6 @@ from urllib.parse import urlparse
 
 import pandas as pd
 
-# 寄件人簽名 — 改這裡換人
-SENDER_NAME = "Marry"
-
 # ── Constants ────────────────────────────────────────────────
 
 VALID_CONTACT_STATUSES = {
@@ -207,10 +204,12 @@ def _source_domain(source_url: str) -> str:
 
 
 def generate_vendor_email(vendor_id: int, template_type: str = "initial") -> dict:
-    """個人化 1 對 1 詢問風格範本。
-    刻意避開群發業務信常見的 spam pattern：標題不用「合作邀請」「曝光」、
-    body 不用條列式賣點、僅 1 個 URL、簽名像個人。
-    保留 opt-out 關鍵字「不需聯繫」方便操作端追蹤回覆。"""
+    """正式商務 outreach 範本（採用 user 提供的版本）。
+
+    避開 spam pattern：標題不用「合作邀請」、body 不用條列式賣點、
+    body 完全不放任何 http(s):// URL（品牌只用文字提及，收件方可從 From
+    header 取得網址）。保留 opt-out 關鍵字「不需聯繫」操作端追蹤用。
+    """
     if template_type not in {"initial", "follow_up"}:
         raise ValueError(f"未支援的 template_type：{template_type}")
 
@@ -220,40 +219,46 @@ def generate_vendor_email(vendor_id: int, template_type: str = "initial") -> dic
     source_domain = _source_domain(source_url)
     last_contacted = (vendor.get("last_contacted") or "").strip()
 
-    optout_line = "如果不方便，回個「不需聯繫」我就不會再寄了。"
-    sig = f"\n\n—— {SENDER_NAME}\nZeroGrav"
+    optout = "若不方便收到後續聯繫，回覆「不需聯繫」即可，我們會停止後續通知。"
 
     if template_type == "initial":
-        subject = f"請教{company}是否方便把設備放到二手儀器目錄"
-        opener = (
-            f"我在 {source_domain} 看到貴公司有在處理二手儀器，"
+        subject = f"想邀請{company}評估將設備同步刊登到 ZeroGrav"
+        source_line = (
+            f"我們在 {source_domain} 留意到貴公司公開資訊中"
             if source_domain
-            else "我看到貴公司有在處理二手儀器，"
+            else "我們留意到貴公司公開資訊中"
         )
         body = (
-            "您好，\n\n"
-            f"{opener}想請教一個問題：\n"
-            "如果有一個匯整台灣二手儀器資訊的網站，讓買家可以集中比較，"
-            f"{company}會有興趣放上幾筆設備試試嗎？\n\n"
-            "我這邊在做的是 zerograv.com.tw，目前還在累積供給端。\n"
-            "免費，買家會直接用您指定的方式聯絡，不經過我們抽成。\n"
-            "若有興趣可以先放 3-5 筆試試，我這邊協助處理上架。\n\n"
-            f"{optout_line}"
-            f"{sig}"
+            f"{company} 團隊您好：\n\n"
+            "我們是 ZeroGrav，正在建立一個二手儀器設備的集中式曝光平台，"
+            "協助買家更容易找到量測儀器、檢測設備與相關二手設備供應資訊。\n\n"
+            f"{source_line}有販售或提供「二手儀器 / 量測儀器 / 檢測設備」相關設備，"
+            "因此想邀請貴公司評估是否將部分設備同步刊登到 ZeroGrav。"
+            "刊登可免費開始，不會取代貴公司原有官網、Facebook 或既有銷售管道，"
+            "而是多一個讓潛在買家看見設備的曝光入口。\n\n"
+            "若您願意，我們可以先協助整理並刊登 3-5 筆設備資訊。"
+            "買家後續可依照貴公司指定方式聯絡，例如電話、Email、LINE 或官網表單；"
+            "ZeroGrav 不會承諾成交，也不會誇大流量，"
+            "只希望用低成本方式協助設備多一個被搜尋與詢問的機會。\n\n"
+            "若方便的話，歡迎回覆可刊登的設備資料或適合聯繫的窗口，我們會再協助整理下一步。\n\n"
+            f"{optout}"
         )
     else:  # follow_up
-        subject = f"再請教一次：{company}是否方便放幾筆設備到 zerograv"
+        subject = f"再次請教：{company}是否方便將設備刊登到 ZeroGrav"
         prior = (
-            f"前陣子（{last_contacted}）有寫信問過貴公司關於 zerograv.com.tw 的事，"
+            f"前陣子（{last_contacted}）"
             if last_contacted
-            else "前陣子有寫信問過貴公司關於 zerograv.com.tw 的事，"
+            else "前陣子"
         )
         body = (
-            "您好，\n\n"
-            f"{prior}不確定那封是不是被擋到垃圾匣，所以再寄一次。\n\n"
-            f"如果方便，{company}可以先放 3-5 筆設備試試，免費、買家直接聯絡您。\n\n"
-            f"{optout_line}"
-            f"{sig}"
+            f"{company} 團隊您好：\n\n"
+            f"{prior}有與貴公司聯繫過 ZeroGrav 二手儀器平台刊登的事，"
+            "因為不確定當時是否有看到，想再請教一次。\n\n"
+            "如先前所提，刊登可免費開始，不取代貴公司原有銷售管道，"
+            "買家會依貴公司指定方式聯絡。"
+            "若願意嘗試，我們可以先協助整理並刊登 3-5 筆設備資訊。\n\n"
+            "若方便的話，歡迎回覆可刊登的設備資料或適合聯繫的窗口。\n\n"
+            f"{optout}"
         )
 
     return {"subject": subject, "body": body}

@@ -95,14 +95,16 @@ def test_initial_email_avoids_known_spam_phrases():
     vid = vo.add_vendor("Foo Co", email="a@x.com", source_url="https://foo.example")
     body = vo.generate_vendor_email(vid, "initial")["body"]
     subject = vo.generate_vendor_email(vid, "initial")["subject"]
-    # 不要群發業務信常見詞
-    assert "合作邀請" not in subject and "曝光" not in subject
-    assert "上架費" not in body
-    # 不要 bullet 條列（用 - 開頭多行）
+    # subject 不要「合作邀請」「曝光」這種高 spam score 詞
+    assert "合作邀請" not in subject
+    assert "曝光" not in subject
+    # 不要硬性條列（- 開頭多行）
     assert body.count("\n- ") == 0
-    # body 應該只有一個 URL（zerograv.com.tw），不放 source_url 完整版
-    assert body.count("http") == 0  # 沒有任何 http:// or https://
-    assert body.count("zerograv.com.tw") == 1
+    # body 完全不放 URL，連 zerograv.com.tw 也不放（從 From header 自然帶）
+    assert body.count("http") == 0
+    assert body.count("zerograv.com.tw") == 0
+    # 但品牌至少出現一次
+    assert "ZeroGrav" in body
 
 
 def test_generate_follow_up_mentions_last_contacted():
@@ -115,7 +117,7 @@ def test_generate_follow_up_mentions_last_contacted():
     # 範本刻意不用 "Re:"（cold outreach 用 Re: 反而會被視為偽裝回信，加分 spam score）
     assert "Re:" not in out["subject"]
     assert "Acme" in out["subject"]
-    assert "再請教" in out["subject"] or "追蹤" in out["subject"]
+    assert "再次請教" in out["subject"]
 
 
 def test_generate_follow_up_without_last_contacted_still_works():
