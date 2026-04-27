@@ -1,38 +1,41 @@
 @echo off
-chcp 65001 >nul
-title ZeroGrav Pre-Send Check (Dry-Run)
+pushd %TEMP%
+title ZeroGrav Pre-Send Check
 
 echo.
 echo ========================================
-echo   ZeroGrav 寄信前 Dry-Run 檢查
+echo   ZeroGrav Outreach Dry-Run Check
 echo ========================================
 echo.
 
-wsl bash -c "cd ~/zerograv/outreach && python3 src/pre_send_check.py"
-if errorlevel 1 (
-  echo.
-  echo ERROR: 執行失敗。可能原因：
-  echo   1. WSL 沒啟動
-  echo   2. 套件還沒裝（先點 run_dashboard.bat 跑一次自動裝）
-  echo.
-  pause
-  exit /b 1
-)
+wsl bash -c "cd /home/a0915/zerograv/outreach && python3 src/pre_send_check.py"
+if errorlevel 1 goto FAILED
 
 echo.
-echo ──────────────────────────────────────────
+echo ----------------------------------------
 echo.
-:ASK_PREVIEW
+
+:ASK
 set "VID="
-set /p VID="預覽某個 vendor 完整信件? 輸入 ID（或直接 Enter 結束）: "
+set /p VID="Preview vendor email? Enter ID (or press Enter to exit): "
 if "%VID%"=="" goto END
 
 echo.
-wsl bash -c "cd ~/zerograv/outreach && python3 src/pre_send_check.py --preview %VID%"
+wsl bash -c "cd /home/a0915/zerograv/outreach && python3 src/pre_send_check.py --preview %VID%"
 echo.
-echo ──────────────────────────────────────────
-goto ASK_PREVIEW
+echo ----------------------------------------
+goto ASK
+
+:FAILED
+echo.
+echo ERROR: pre_send_check failed.
+echo Run run_dashboard.bat first to install dependencies.
+echo.
+pause
+popd
+exit /b 1
 
 :END
 echo.
 pause
+popd

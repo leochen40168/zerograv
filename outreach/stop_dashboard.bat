@@ -1,7 +1,8 @@
 @echo off
-chcp 65001 >nul
+pushd %TEMP%
 title Stop ZeroGrav Dashboard
-echo 正在停止所有 Streamlit 程序...
-wsl bash -c "pkill -f 'streamlit run' && echo 已停止 || echo 沒有正在執行的 dashboard"
+echo Stopping all Streamlit processes in WSL...
+wsl bash -c "pkill -f 'streamlit run' && echo 'Stopped.' || echo 'No dashboard was running.'"
 echo.
 pause
+popd
