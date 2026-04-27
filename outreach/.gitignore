@@ -3,7 +3,6 @@ __pycache__/
 *.pyc
 .pytest_cache/
 
-# vendors / log 含個資與寄送紀錄；初始 commit 是空表頭，
-# 真的開始累積資料後請取消下面註解，避免推到遠端。
-# data/vendors.csv
-# data/email_outreach_log.csv
+# vendors / log 含個資與寄送紀錄，永遠不入 git
+data/vendors.csv
+data/email_outreach_log.csv
