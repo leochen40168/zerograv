@@ -5,6 +5,7 @@ attributes. SMTP is mocked — no real network calls.
 """
 from __future__ import annotations
 
+import os
 from datetime import date
 from unittest.mock import MagicMock, patch
 
@@ -208,6 +209,48 @@ def test_send_email_standalone_blocked_when_disabled(monkeypatch):
     monkeypatch.setenv("EMAIL_SEND_ENABLED", "false")
     with pytest.raises(es.EmailDisabledError):
         es.send_email("a@x.com", "s", "b")
+
+
+# ── set_send_enabled (toggle) ────────────────────────────────
+
+def test_set_send_enabled_flips_value_in_env(tmp_path, monkeypatch):
+    env_file = tmp_path / ".env"
+    env_file.write_text(
+        "EMAIL_SMTP_HOST=smtp.example\n"
+        "EMAIL_SEND_ENABLED=false\n"
+        "EMAIL_DAILY_LIMIT=20\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(es, "_BASE_DIR", tmp_path)
+
+    es.set_send_enabled(True)
+    content = env_file.read_text(encoding="utf-8")
+    assert "EMAIL_SEND_ENABLED=true" in content
+    assert "EMAIL_SMTP_HOST=smtp.example" in content  # other lines preserved
+    assert "EMAIL_DAILY_LIMIT=20" in content
+    assert os.environ["EMAIL_SEND_ENABLED"] == "true"
+
+    es.set_send_enabled(False)
+    content = env_file.read_text(encoding="utf-8")
+    assert "EMAIL_SEND_ENABLED=false" in content
+    assert os.environ["EMAIL_SEND_ENABLED"] == "false"
+
+
+def test_set_send_enabled_appends_if_missing(tmp_path, monkeypatch):
+    env_file = tmp_path / ".env"
+    env_file.write_text("EMAIL_SMTP_HOST=x\n", encoding="utf-8")
+    monkeypatch.setattr(es, "_BASE_DIR", tmp_path)
+
+    es.set_send_enabled(True)
+    content = env_file.read_text(encoding="utf-8")
+    assert "EMAIL_SEND_ENABLED=true" in content
+    assert "EMAIL_SMTP_HOST=x" in content
+
+
+def test_set_send_enabled_raises_if_no_env(tmp_path, monkeypatch):
+    monkeypatch.setattr(es, "_BASE_DIR", tmp_path)
+    with pytest.raises(FileNotFoundError):
+        es.set_send_enabled(True)
 
 
 # ── pre_send_check helpers ───────────────────────────────────

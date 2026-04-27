@@ -21,16 +21,37 @@ st.set_page_config(page_title="ZeroGrav Vendor Outreach", layout="wide")
 st.title("ZeroGrav Vendor Email Outreach Agent")
 
 cfg = es.load_email_config()
-if cfg["send_enabled"]:
-    st.success(
-        f"EMAIL_SEND_ENABLED=true — 按 Send Email 會真的寄出。每日上限 {cfg['daily_limit']} 封，"
-        f"今日已寄 {vo.count_sent_today()} 封。"
-    )
-else:
-    st.warning(
-        "EMAIL_SEND_ENABLED=false — 目前為 **draft-only** 模式。"
-        "Send Email 會被擋下，方便你先檢查信件內容。要真的寄出請到 .env 設 EMAIL_SEND_ENABLED=true。"
-    )
+
+# ── 寄送開關（一鍵切換 .env 的 EMAIL_SEND_ENABLED）─────────
+toggle_cols = st.columns([4, 1])
+with toggle_cols[0]:
+    if cfg["send_enabled"]:
+        st.success(
+            f"🟢 **寄送已開啟** — 按 Send Email 會真的寄出。"
+            f"今日已寄 {vo.count_sent_today()} / {cfg['daily_limit']} 封。"
+        )
+    else:
+        st.warning(
+            "🟡 **寄送已關閉**（draft-only 模式）— Send Email 會被擋下，"
+            "方便你先檢查信件內容。"
+        )
+with toggle_cols[1]:
+    if cfg["send_enabled"]:
+        if st.button("⛔ 關閉寄送", use_container_width=True):
+            try:
+                es.set_send_enabled(False)
+                st.toast("已關閉寄送")
+                st.rerun()
+            except FileNotFoundError as e:
+                st.error(str(e))
+    else:
+        if st.button("🟢 開啟寄送", type="primary", use_container_width=True):
+            try:
+                es.set_send_enabled(True)
+                st.toast("已開啟寄送 — 寄完記得關回去")
+                st.rerun()
+            except FileNotFoundError as e:
+                st.error(str(e))
 
 # ── Add vendor ───────────────────────────────────────────────
 

@@ -53,6 +53,42 @@ def load_email_config() -> dict:
     }
 
 
+def set_send_enabled(enabled: bool) -> bool:
+    """Flip EMAIL_SEND_ENABLED in .env. Returns the new boolean value.
+
+    Writes atomically (temp file + replace) and updates ``os.environ`` so
+    the next ``load_email_config()`` call in the same process sees the
+    change without a restart.
+    """
+    env_path = _BASE_DIR / ".env"
+    if not env_path.exists():
+        raise FileNotFoundError(
+            f"{env_path} 不存在。請先複製 .env.example：cp .env.example .env"
+        )
+
+    new_value = "true" if enabled else "false"
+    lines = env_path.read_text(encoding="utf-8").splitlines()
+
+    found = False
+    new_lines = []
+    for line in lines:
+        stripped = line.lstrip()
+        if stripped.startswith("EMAIL_SEND_ENABLED="):
+            new_lines.append(f"EMAIL_SEND_ENABLED={new_value}")
+            found = True
+        else:
+            new_lines.append(line)
+    if not found:
+        new_lines.append(f"EMAIL_SEND_ENABLED={new_value}")
+
+    tmp_path = env_path.with_name(env_path.name + ".tmp")
+    tmp_path.write_text("\n".join(new_lines) + "\n", encoding="utf-8")
+    tmp_path.replace(env_path)
+
+    os.environ["EMAIL_SEND_ENABLED"] = new_value
+    return enabled
+
+
 def _check_send_allowed(cfg: dict) -> None:
     if not cfg["send_enabled"]:
         raise EmailDisabledError(
