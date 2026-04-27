@@ -12,6 +12,7 @@ import pytest
 
 import vendor_outreach as vo
 import email_sender as es
+import pre_send_check as psc
 
 
 @pytest.fixture(autouse=True)
@@ -207,3 +208,73 @@ def test_send_email_standalone_blocked_when_disabled(monkeypatch):
     monkeypatch.setenv("EMAIL_SEND_ENABLED", "false")
     with pytest.raises(es.EmailDisabledError):
         es.send_email("a@x.com", "s", "b")
+
+
+# ── pre_send_check helpers ───────────────────────────────────
+
+def test_suggest_template_for_known_statuses():
+    assert psc.suggest_template("new") == "initial"
+    assert psc.suggest_template("email_drafted") == "initial"
+    assert psc.suggest_template("follow_up_needed") == "follow_up"
+    assert psc.suggest_template("opted_out") is None
+    assert psc.suggest_template("listed") is None
+
+
+def test_eligible_candidates_excludes_blocked_and_missing_data():
+    vo.add_vendor("ok-new", email="a@x.com", source_url="https://a.com",
+                  contact_status="new")
+    vo.add_vendor("ok-followup", email="b@x.com", source_url="https://b.com",
+                  contact_status="follow_up_needed")
+    vo.add_vendor("blocked", email="c@x.com", source_url="https://c.com",
+                  contact_status="opted_out")
+    vo.add_vendor("no-email", email="", source_url="https://d.com",
+                  contact_status="new")
+    vo.add_vendor("no-source", email="e@x.com", source_url="",
+                  contact_status="new")
+    vo.add_vendor("already-listed", email="f@x.com", source_url="https://f.com",
+                  contact_status="listed")
+
+    cands = psc.eligible_candidates(vo.load_vendors())
+    names = list(cands["company_name"])
+    # follow_up_needed should sort before new (priority)
+    assert names == ["ok-followup", "ok-new"]
+    assert list(cands["suggested_template"]) == ["follow_up", "initial"]
+
+
+def test_find_issues_lists_actionable_vendors_with_missing_data():
+    vo.add_vendor("ok", email="a@x.com", source_url="https://a.com",
+                  contact_status="new")
+    vo.add_vendor("no-email", email="", source_url="https://d.com",
+                  contact_status="new")
+    vo.add_vendor("no-source", email="e@x.com", source_url="",
+                  contact_status="follow_up_needed")
+    # opted_out with missing data — should NOT show up (already excluded)
+    vo.add_vendor("blocked-incomplete", email="", source_url="",
+                  contact_status="opted_out")
+
+    issues = psc.find_issues(vo.load_vendors())
+    names = sorted(issues["company_name"].tolist())
+    assert names == ["no-email", "no-source"]
+    assert all(s for s in issues["issue"])
+
+
+def test_pre_send_check_main_runs_without_error(capsys):
+    vo.add_vendor("Acme", email="a@x.com", source_url="https://a.com",
+                  contact_status="new")
+    rc = psc.main([])
+    captured = capsys.readouterr().out
+    assert rc == 0
+    assert "今日候選名單" in captured
+    assert "Acme" in captured
+
+
+def test_pre_send_check_preview_prints_email(capsys):
+    vid = vo.add_vendor("Acme", email="a@x.com",
+                        source_url="https://acme.example/contact",
+                        contact_status="new")
+    rc = psc.main(["--preview", str(vid)])
+    captured = capsys.readouterr().out
+    assert rc == 0
+    assert "[Subject]" in captured
+    assert "Acme" in captured
+    assert "https://acme.example/contact" in captured

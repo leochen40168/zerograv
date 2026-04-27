@@ -120,6 +120,29 @@ EMAIL_DAILY_LIMIT=20
 
 沒設好的後果：信直接進垃圾郵件，整個工具白做。可用 [MXToolbox](https://mxtoolbox.com/) 檢查。
 
+## 每日早上 review（pre_send_check）
+
+開閘寄信前，用 dry-run 工具看今天會寄給誰：
+
+```bash
+cd outreach
+python3 src/pre_send_check.py
+```
+
+輸出三個區塊：
+1. **今日候選名單** — 會被寄信的 vendor，依優先序排（follow_up_needed → new → email_drafted）；含建議套用的模板
+2. **資料缺失** — actionable 但缺 email 或 source_url 的 vendor，需要補資料
+3. **已封鎖名單** — `opted_out` / `not_interested`，永遠不會寄
+
+不會打開 SMTP，純 read-only。常用旗標：
+
+```bash
+python3 src/pre_send_check.py --status new          # 只看 status=new
+python3 src/pre_send_check.py --template follow_up  # 只看建議寄追蹤信的
+python3 src/pre_send_check.py --limit 5             # 顯示前 5 筆
+python3 src/pre_send_check.py --preview 12          # 印出 vendor #12 的完整信件內容
+```
+
 ## 跑測試
 
 ```bash
