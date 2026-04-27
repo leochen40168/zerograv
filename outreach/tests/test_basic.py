@@ -70,14 +70,39 @@ def test_invalid_source_type_raises():
 def test_generate_initial_email_includes_company_and_source():
     vid = vo.add_vendor(
         "Acme Inc", email="a@x.com",
-        source_url="https://acme.example/contact",
+        source_url="https://www.acme.example/contact",
     )
     out = vo.generate_vendor_email(vid, template_type="initial")
     assert set(out.keys()) == {"subject", "body"}
     assert "Acme Inc" in out["subject"]
     assert "Acme Inc" in out["body"]
-    assert "https://acme.example/contact" in out["body"]
-    assert "不需聯繫" in out["body"]  # opt-out language
+    # 範本只放 domain，不放完整 URL（降低 spam 觸發），且去掉 www.
+    assert "acme.example" in out["body"]
+    assert "www.acme.example" not in out["body"]
+    assert "https://acme.example/contact" not in out["body"]
+    assert "不需聯繫" in out["body"]  # opt-out keyword 保留 — 操作端追蹤用
+
+
+def test_source_domain_strips_scheme_and_www():
+    assert vo._source_domain("https://www.example.com/path") == "example.com"
+    assert vo._source_domain("http://example.com.tw") == "example.com.tw"
+    assert vo._source_domain("example.com") == "example.com"
+    assert vo._source_domain("") == ""
+
+
+def test_initial_email_avoids_known_spam_phrases():
+    """範本應該避開最容易觸發 Gmail spam filter 的字眼"""
+    vid = vo.add_vendor("Foo Co", email="a@x.com", source_url="https://foo.example")
+    body = vo.generate_vendor_email(vid, "initial")["body"]
+    subject = vo.generate_vendor_email(vid, "initial")["subject"]
+    # 不要群發業務信常見詞
+    assert "合作邀請" not in subject and "曝光" not in subject
+    assert "上架費" not in body
+    # 不要 bullet 條列（用 - 開頭多行）
+    assert body.count("\n- ") == 0
+    # body 應該只有一個 URL（zerograv.com.tw），不放 source_url 完整版
+    assert body.count("http") == 0  # 沒有任何 http:// or https://
+    assert body.count("zerograv.com.tw") == 1
 
 
 def test_generate_follow_up_mentions_last_contacted():
@@ -87,7 +112,10 @@ def test_generate_follow_up_mentions_last_contacted():
     )
     out = vo.generate_vendor_email(vid, template_type="follow_up")
     assert "2026-04-20" in out["body"]
-    assert out["subject"].startswith("Re:")
+    # 範本刻意不用 "Re:"（cold outreach 用 Re: 反而會被視為偽裝回信，加分 spam score）
+    assert "Re:" not in out["subject"]
+    assert "Acme" in out["subject"]
+    assert "再請教" in out["subject"] or "追蹤" in out["subject"]
 
 
 def test_generate_follow_up_without_last_contacted_still_works():
@@ -320,4 +348,4 @@ def test_pre_send_check_preview_prints_email(capsys):
     assert rc == 0
     assert "[Subject]" in captured
     assert "Acme" in captured
-    assert "https://acme.example/contact" in captured
+    assert "acme.example" in captured  # domain only in new template

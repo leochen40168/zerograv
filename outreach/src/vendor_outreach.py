@@ -10,8 +10,12 @@ import csv
 from datetime import date
 from pathlib import Path
 from typing import Optional
+from urllib.parse import urlparse
 
 import pandas as pd
+
+# 寄件人簽名 — 改這裡換人
+SENDER_NAME = "Marry"
 
 # ── Constants ────────────────────────────────────────────────
 
@@ -187,59 +191,69 @@ def _get_vendor(vendor_id: int) -> dict:
 
 # ── Email templates ──────────────────────────────────────────
 
-_SIGN_OFF = (
-    "\n\n—\n"
-    "ZeroGrav 二手儀器交易平台\n"
-    "https://zerograv.com.tw\n\n"
-    "若不方便收到後續聯繫，回覆「不需聯繫」即可，我們會停止後續通知。"
-)
+def _source_domain(source_url: str) -> str:
+    """從 URL 抽出乾淨網域：'https://www.ren-ji-tech.com.tw/about' -> 'ren-ji-tech.com.tw'"""
+    if not source_url:
+        return ""
+    try:
+        url = source_url if "://" in source_url else "http://" + source_url
+        host = urlparse(url).netloc or urlparse(url).path.split("/")[0]
+        host = host.split(":")[0]  # strip port
+        if host.startswith("www."):
+            host = host[4:]
+        return host or source_url
+    except Exception:
+        return source_url
 
 
 def generate_vendor_email(vendor_id: int, template_type: str = "initial") -> dict:
+    """個人化 1 對 1 詢問風格範本。
+    刻意避開群發業務信常見的 spam pattern：標題不用「合作邀請」「曝光」、
+    body 不用條列式賣點、僅 1 個 URL、簽名像個人。
+    保留 opt-out 關鍵字「不需聯繫」方便操作端追蹤回覆。"""
     if template_type not in {"initial", "follow_up"}:
         raise ValueError(f"未支援的 template_type：{template_type}")
 
     vendor = _get_vendor(vendor_id)
     company = (vendor.get("company_name") or "").strip() or "貴公司"
     source_url = (vendor.get("source_url") or "").strip()
+    source_domain = _source_domain(source_url)
     last_contacted = (vendor.get("last_contacted") or "").strip()
 
+    optout_line = "如果不方便，回個「不需聯繫」我就不會再寄了。"
+    sig = f"\n\n—— {SENDER_NAME}\nZeroGrav"
+
     if template_type == "initial":
-        subject = f"二手儀器設備曝光合作邀請 — {company}"
-        source_line = (
-            f"我們在 {source_url} 看到貴公司有公開販售二手儀器/量測設備的資訊，"
-            if source_url
-            else "我們注意到貴公司有經營二手儀器/量測設備的業務，"
+        subject = f"請教{company}是否方便把設備放到二手儀器目錄"
+        opener = (
+            f"我在 {source_domain} 看到貴公司有在處理二手儀器，"
+            if source_domain
+            else "我看到貴公司有在處理二手儀器，"
         )
         body = (
-            f"{company} 您好，\n\n"
-            "我們是 ZeroGrav，一個專注於台灣二手科學儀器與量測設備的集中式曝光平台 "
-            "(https://zerograv.com.tw)。\n\n"
-            f"{source_line}希望能邀請貴公司在 ZeroGrav 上架現有設備，提高曝光與洽詢機會。\n\n"
-            "幾項說明：\n"
-            "- 平台目前提供免費刊登，無上架費或抽成。\n"
-            "- 我們不取代貴公司原有官網與通路；買家依貴公司指定方式聯絡（電話、Line、Email 等）。\n"
-            "- 若您願意嘗試，我們可以協助先行刊登 3-5 筆設備，後續再由貴公司決定是否自行維護。\n"
-            "- 我們不對成交做任何承諾，也不誇大流量；目標是為買賣雙方提供透明的集中目錄。\n\n"
-            "若有興趣了解更多，回信告訴我們即可，我們會提供刊登所需的格式與範例。"
-            f"{_SIGN_OFF}"
+            "您好，\n\n"
+            f"{opener}想請教一個問題：\n"
+            "如果有一個匯整台灣二手儀器資訊的網站，讓買家可以集中比較，"
+            f"{company}會有興趣放上幾筆設備試試嗎？\n\n"
+            "我這邊在做的是 zerograv.com.tw，目前還在累積供給端。\n"
+            "免費，買家會直接用您指定的方式聯絡，不經過我們抽成。\n"
+            "若有興趣可以先放 3-5 筆試試，我這邊協助處理上架。\n\n"
+            f"{optout_line}"
+            f"{sig}"
         )
     else:  # follow_up
-        subject = f"Re: 二手儀器設備曝光合作邀請 — {company}"
-        prior_line = (
-            f"我們在 {last_contacted} 曾與貴公司聯繫過 ZeroGrav 二手儀器交易平台合作邀請的事，"
+        subject = f"再請教一次：{company}是否方便放幾筆設備到 zerograv"
+        prior = (
+            f"前陣子（{last_contacted}）有寫信問過貴公司關於 zerograv.com.tw 的事，"
             if last_contacted
-            else "前陣子曾與貴公司聯繫過 ZeroGrav 二手儀器交易平台合作邀請的事，"
+            else "前陣子有寫信問過貴公司關於 zerograv.com.tw 的事，"
         )
         body = (
-            f"{company} 您好，\n\n"
-            f"{prior_line}想再跟您確認一次是否方便進一步討論。\n\n"
-            "如先前所提：\n"
-            "- 平台免費刊登，無上架費。\n"
-            "- 不取代貴公司現有通路；買家直接依貴公司指定方式聯絡。\n"
-            "- 我們可以協助先行刊登 3-5 筆設備作為試水溫，您再決定是否續用。\n\n"
-            "如果這段時間貴公司有其他考量，也歡迎告訴我們，我們會更新聯繫頻率。"
-            f"{_SIGN_OFF}"
+            "您好，\n\n"
+            f"{prior}不確定那封是不是被擋到垃圾匣，所以再寄一次。\n\n"
+            f"如果方便，{company}可以先放 3-5 筆設備試試，免費、買家直接聯絡您。\n\n"
+            f"{optout_line}"
+            f"{sig}"
         )
 
     return {"subject": subject, "body": body}
